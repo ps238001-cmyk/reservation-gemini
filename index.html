@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>カフェ予約</title>
+
+<style>
+/* ===== 基本設定 ===== */
+body {
+  font-family: "Yu Mincho", "Hiragino Mincho Pro", serif;
+  background: #fafafa;
+  color: #555;
+  margin: 0;
+}
+
+.container {
+  max-width: 420px;
+  margin: 20px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+h1 {
+  text-align: center;
+  font-size: 22px;
+  color: #333;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 30px;
+}
+
+/* ===== カレンダー ===== */
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.calendar-header button {
+  border: 1px solid #c5a059;
+  background: none;
+  color: #c5a059;
+  padding: 5px 15px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.weekdays,
+.days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+}
+
+.weekdays {
+  font-size: 12px;
+  margin-top: 10px;
+  color: #888;
+}
+
+.days {
+  gap: 6px;
+  margin-top: 5px;
+}
+
+.day {
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 10px 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.day:hover {
+  background-color: #fffaf0;
+  border-color: #c5a059;
+}
+
+.day.selected {
+  background: #c5a059;
+  color: #fff;
+  border-color: #c5a059;
+}
+
+/* ===== 時間帯 ===== */
+.time-slots {
+  display: none;
+  margin-top: 25px;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+  animation: fadeIn 0.5s;
+}
+
+.time-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.time-buttons button {
+  border: 1px solid #c5a059;
+  background: #fff;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #555;
+}
+
+.time-buttons button.selected {
+  background: #c5a059;
+  color: #fff;
+}
+
+/* ===== フォーム ===== */
+.form-group {
+  margin-top: 20px;
+}
+
+label {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px;
+  margin-top: 5px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  box-sizing: border-box;
+}
+
+/* ===== ボタン ===== */
+.submit-btn {
+  margin-top: 30px;
+  width: 100%;
+  padding: 15px;
+  background: linear-gradient(45deg, #c5a059, #e0d0b0);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(197, 160, 89, 0.4);
+}
+
+.submit-btn:hover {
+  opacity: 0.9;
+}
+
+/* ===== 確認画面 ===== */
+#confirmScreen {
+  display: none;
+  max-width: 420px;
+  margin: 20px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.confirm-row {
+  border-bottom: 1px solid #eee;
+  padding: 15px 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container" id="formScreen">
+  <h1>カフェ予約</h1>
+  <div class="subtitle">ご予約を承ります</div>
+
+  <div class="calendar-header">
+    <button id="prevMonth">←</button>
+    <div id="monthYear" style="font-weight:bold;"></div>
+    <button id="nextMonth">→</button>
+  </div>
+
+  <div class="weekdays">
+    <div>日</div><div>月</div><div>火</div><div>水</div>
+    <div>木</div><div>金</div><div>土</div>
+  </div>
+
+  <div class="days" id="calendarDays"></div>
+
+  <div class="time-slots" id="timeSlots">
+    <h3 style="font-size:1rem; margin-bottom:10px;">希望時間</h3>
+    <div class="time-buttons">
+      <button>11:00</button>
+      <button>13:00</button>
+      <button>15:00</button>
+      <button>17:00</button>
+      <button>19:00</button>
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>人数</label>
+    <select id="peopleInput">
+      <option value="">選択してください</option>
+      <option>1名</option>
+      <option>2名</option>
+      <option>3名</option>
+      <option>4名</option>
+    </select>
+  </div>
+
+  <div class="form-group">
+    <label>お名前</label>
+    <input type="text" id="nameInput" placeholder="山田 太郎">
+  </div>
+
+  <div class="form-group">
+    <label>電話番号</label>
+    <input type="tel" id="phoneInput" placeholder="090-0000-0000">
+  </div>
+
+  <button class="submit-btn" id="confirmBtn">予約内容を確認する</button>
+</div>
+
+<div id="confirmScreen">
+  <h1>予約内容の確認</h1>
+  <div class="subtitle">以下の内容でよろしいですか？</div>
+  
+  <div class="confirm-row">
+    <span>日付</span>
+    <span id="cDate" style="font-weight:bold;"></span>
+  </div>
+  <div class="confirm-row">
+    <span>時間</span>
+    <span id="cTime" style="font-weight:bold;"></span>
+  </div>
+  <div class="confirm-row">
+    <span>人数</span>
+    <span id="cPeople" style="font-weight:bold;"></span>
+  </div>
+  <div class="confirm-row">
+    <span>お名前</span>
+    <span id="cName" style="font-weight:bold;"></span>
+  </div>
+  <div class="confirm-row">
+    <span>電話番号</span>
+    <span id="cPhone" style="font-weight:bold;"></span>
+  </div>
+
+  <button class="submit-btn" id="finalBtn">この内容で予約する</button>
+  <button class="submit-btn" style="background:#ccc; margin-top:10px;" onclick="location.reload()">戻る</button>
+</div>
+
+<script>
+// 日付の設定
+const today = new Date();
+let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+const maxMonth = new Date(today.getFullYear(), today.getMonth() + 3, 1);
+
+let selectedDateText = "";
+let selectedTimeText = "";
+
+// 要素を取得
+const calendarDays = document.getElementById("calendarDays");
+const monthYear = document.getElementById("monthYear");
+const timeSlots = document.getElementById("timeSlots");
+const formScreen = document.getElementById("formScreen");
+const confirmScreen = document.getElementById("confirmScreen");
+
+// カレンダーを描画する関数
+function renderCalendar() {
+  calendarDays.innerHTML = "";
+  const y = currentMonth.getFullYear();
+  const m = currentMonth.getMonth();
+  monthYear.textContent = `${y}年 ${m + 1}月`;
+
+  const firstDay = new Date(y, m, 1).getDay();
+  const lastDate = new Date(y, m + 1, 0).getDate();
+
+  // 空白のセルを作る
+  for (let i = 0; i < firstDay; i++) {
+    calendarDays.appendChild(document.createElement("div"));
+  }
+
+  // 日付のボタンを作る
+  for (let d = 1; d <= lastDate; d++) {
+    const div = document.createElement("div");
+    div.className = "day";
+    div.textContent = d;
+
+    div.onclick = () => {
+      document.querySelectorAll(".day").forEach(el => el.classList.remove("selected"));
+      div.classList.add("selected");
+      // 日付を保存
+      selectedDateText = `${m + 1}月${d}日`;
+      // 時間選択を表示
+      showTimes();
+    };
+
+    calendarDays.appendChild(div);
+  }
+}
+
+// 時間ボタンを表示する関数
+function showTimes() {
+  timeSlots.style.display = "block";
+  // 時間ボタンのクリック設定
+  document.querySelectorAll(".time-buttons button").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll(".time-buttons button").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+      selectedTimeText = btn.textContent;
+    };
+  });
+}
+
+// 月移動ボタン
+document.getElementById("prevMonth").onclick = () => {
+  currentMonth.setMonth(currentMonth.getMonth() - 1);
+  renderCalendar();
+};
+
+document.getElementById("nextMonth").onclick = () => {
+  currentMonth.setMonth(currentMonth.getMonth() + 1);
+  renderCalendar();
+};
+
+// 「確認する」ボタンを押したとき
+document.getElementById("confirmBtn").onclick = () => {
+  // 入力値を取得
+  const people = document.getElementById("peopleInput").value;
+  const name = document.getElementById("nameInput").value;
+  const phone = document.getElementById("phoneInput").value;
+
+  // チェック
+  if (!selectedDateText || !selectedTimeText) {
+    alert("日付と時間を選択してください");
+    return;
+  }
+  if (!people || !name || !phone) {
+    alert("すべての項目を入力してください");
+    return;
+  }
+
+  // 確認画面に表示
+  document.getElementById("cDate").textContent = selectedDateText;
+  document.getElementById("cTime").textContent = selectedTimeText;
+  document.getElementById("cPeople").textContent = people;
+  document.getElementById("cName").textContent = name;
+  document.getElementById("cPhone").textContent = phone;
+
+  // 画面切り替え
+  formScreen.style.display = "none";
+  confirmScreen.style.display = "block";
+  window.scrollTo(0,0);
+};
+
+// 「予約する」ボタンを押したとき
+document.getElementById("finalBtn").onclick = () => {
+  alert("予約が完了しました！\nご来店をお待ちしております。");
+  location.reload();
+};
+
+// 最初にカレンダーを表示
+renderCalendar();
+</script>
+
+</body>
+</html>
